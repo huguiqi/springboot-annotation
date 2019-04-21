@@ -477,7 +477,104 @@ SpringAopTest.java:
  2)        returning:该属性指定一个形参名，用于表示Advice方法中可定义与此同名的形参，该形参可用于访问目标方法的返回值。除此之外，在Advice方法中定义该形参（代表目标方法的返回值）时指定的类型，会限制目标方法必须返回指定类型的值或没有返回值。
  
  
- ## 自定义Spring Advice
+ ## 自定义Annotation
+ 
+ 1. 使用AspectJ实现注解
+ 
+ 这种方式比较简单，但是它有个缺点，就是只支持spring容器管理的对象(一般为service对象)，如果是非spring管理的对象，则不起作用
+ 
+ 2. 使用自定义注解
+ 
+ 我们经常会对pojo对象的某个属性添加自定义注解，进行值过滤等操作，而pojo对象大部分是我们new出来的对象。
+ 
+ 
+ 如果是非spring管理的对象，就必须要手动写解析器了,这个问题也困扰了我好久，暂时没有很好的方式解决。
+ 
+ 
+ 具体看AnnotationTest.java：
+ 
+ 
+ 
+     @SpringBootTest
+     @RunWith(SpringRunner.class)
+     public class AnnotationTest {
+     
+         @Autowired
+         private UserService userService;
+     
+     
+     
+         @Test
+         public void testUserService(){
+     
+             User user = userService.updatePoints(new BigDecimal(120.34555));
+     
+             Assert.assertEquals(new BigDecimal(120.3456).setScale(4,HALF_UP),user.getPoints());
+         }
+     
+     
+         @Test
+         public void testUserDomain() throws IllegalAccessException {
+     
+             User user = new User();
+             user.setId(1);
+             user.setName("小黑");
+             user.setNick("小黑爱大长腿");
+             user.setPoints(new BigDecimal(120.34555));
+     
+             //如果是非spring管理的对象，就必须要手动写解析器了,这个问题也困扰了我好久，暂时没有很好的方式解决
+             filedProcess(user);
+     
+             methodsProcess(user);
+     
+             Assert.assertEquals(new BigDecimal(120.3456).setScale(4,HALF_UP),user.getPoints());
+     
+         }
+     
+         private void filedProcess(User user) throws IllegalAccessException {
+             Field[] fields = User.class.getDeclaredFields();
+             for (Field field : fields) {
+                 if (field.isAnnotationPresent(BigDecimailScale.class)){
+                     BigDecimailScale bigDecimailScale = field.getAnnotation(BigDecimailScale.class);
+                     field.setAccessible(true);
+                     if (field.getType() == BigDecimal.class){
+                        BigDecimal val = (BigDecimal) field.get(user);
+                        val = val.setScale(bigDecimailScale.scale(),bigDecimailScale.roundMode());
+                        field.set(user,val);
+                     }
+                     System.out.println(field.getName());
+                 }
+             }
+         }
+     
+         private void methodsProcess(User user) {
+             Method[] methods = User.class.getDeclaredMethods();
+     
+             Arrays.stream(methods).filter(method -> method.getName().contains("get")).forEach(method -> {
+                 if (method.isAnnotationPresent(BigDecimailScale.class)){
+                     BigDecimailScale bigDecimailScale = method.getAnnotation(BigDecimailScale.class);
+                     String filedName =  method.getName().substring(3,method.getName().length()).toLowerCase();
+                     try {
+                         Field field = user.getClass().getDeclaredField(filedName);
+                         field.setAccessible(true);
+                         if (field.getType() == BigDecimal.class){
+                             BigDecimal val = (BigDecimal) field.get(user);
+                             val = val.setScale(bigDecimailScale.scale(),bigDecimailScale.roundMode());
+                             field.set(user,val);
+                         }
+                     } catch (NoSuchFieldException e) {
+                         e.printStackTrace();
+                     } catch (IllegalAccessException e) {
+                         e.printStackTrace();
+                     }
+                 }
+             });
+         }
+     }
+ 
+ 
+ 
+ 
  
  
  

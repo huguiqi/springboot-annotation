@@ -1,18 +1,13 @@
 package com.example.demo.common.config;
 
-import com.example.demo.controller.HelloController;
 import com.example.demo.domain.RetryAdvice;
 import com.example.demo.domain.SimplePojo;
-import org.aopalliance.aop.Advice;
-import org.aopalliance.intercept.Interceptor;
-import org.aspectj.lang.annotation.AdviceName;
 import org.springframework.aop.framework.ProxyFactory;
 import org.springframework.aop.support.DefaultPointcutAdvisor;
 import org.springframework.aop.support.JdkRegexpMethodPointcut;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 
 /**
  * Created by guiqi on 2018/1/30.
